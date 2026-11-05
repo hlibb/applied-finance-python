@@ -40,28 +40,37 @@ def max_drawdown(prices):
     # Largest fall from a previous peak (Case Study 3).
     return (prices / prices.cummax() - 1).min() 
  
-stock = load_prices(ticker, buy_date)
+symbols = [symbol.strip() for symbol in ticker.split(",") if symbol.strip()]
+stocks = [(symbol, load_prices(symbol, buy_date)) for symbol in symbols]
  
 # --- Metrics -----------------------------------------------------------
-# TODO: add the remaining metrics from case studies 2-4
 
-total_return = stock.iloc[-1] / stock.iloc[0] - 1
-st.metric("Total return", f"{total_return:.1%}")
+results = []
 
-# CAGR 
-cagr = cagr(stock)
-st.metric("CAGR", f"{cagr:.1%}")
+for symbol, prices in stocks:
+    total_return = prices.iloc[-1] / prices.iloc[0] - 1
+    cagr_value = cagr(prices)
+    volatility_value = volatility(prices)
+    drawdown_value = max_drawdown(prices)
+    risk_value = cagr_value / volatility_value
 
-# Volatility
-volatility = volatility(stock)
-st.metric("Volatility", f"{volatility:.1%}")
+    st.metric(f"{symbol} total return", f"{total_return:.1%}")
+    st.metric(f"{symbol} CAGR", f"{cagr_value:.1%}")
+    st.metric(f"{symbol} volatility", f"{volatility_value:.1%}")
+    st.metric(f"{symbol} max drawdown", f"{drawdown_value:.1%}")
 
-# Max Drawdown
-max_drawdown = max_drawdown(stock)
-st.metric("Max Drawdown", f"{max_drawdown:.1%}")
+    results.append({
+        "Ticker": symbol,
+        "Total return": total_return,
+        "CAGR": cagr_value,
+        "Volatility": volatility_value,
+        "Max drawdown": drawdown_value,
+        "Return/risk": risk_value,
+    })
 
-# --- Charts ------------------------------------------------------------
-st.line_chart({ticker: stock / stock.iloc[0] * 100})
- 
+st.line_chart({
+    symbol: prices / prices.iloc[0] * 100
+    for symbol, prices in stocks
+})
+
 # TODO: export results to Excel
-
